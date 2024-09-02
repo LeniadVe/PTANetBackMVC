@@ -75,10 +75,8 @@ namespace AdministrationAPI.Controllers
             return HandleResult(result, StatusCodes.Status400BadRequest, "An error occurred while updating the fee.");
         }
 
-        private IActionResult HandleResult<T>(Result<T> result,int statusCode, string message)
-        {
-            return ResultHelper.HandleResult(result, _logger, Ok, StatusCode, statusCode, message);
-        }
+        private IActionResult HandleResult<T>(Result<T> result, int statusCode, string message) => ResultHelper.HandleResult(result, _logger, Ok, StatusCode, statusCode, message);
+
     }
 
 }
