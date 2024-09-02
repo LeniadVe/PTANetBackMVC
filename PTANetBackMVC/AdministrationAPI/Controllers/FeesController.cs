@@ -24,6 +24,8 @@ namespace AdministrationAPI.Controllers
             _logger.LogInformation($"GetAllFees was successfully called.");
             var fees = await _feeService.GetAllFeesAsync();
             var result = _dbFeeService.InsertRange(fees);
+            if (result.IsSuccess)
+                return Ok(fees);
             return HandleResult(result, StatusCodes.Status400BadRequest, "An error occurred while retrieving the fees.");
         }
 
