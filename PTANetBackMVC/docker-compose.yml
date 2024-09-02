@@ -1,21 +1,23 @@
+version: '3.4'
+
 services:
-  AdministrationAPI:
+  administrationapi:
     image: administrationapi
-    build: 
+    build:
       context: .
-      dockerfile: Dockerfile
+      dockerfile: AdministrationAPI/Dockerfile
     ports:
       - "8080:80"
     links:
       - sqlserver
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=Administration;User=sa;Password=4|1cu4nd3
+      - ConnectionStrings__DefaultConnection=Server={SERVER};Database={DATABASE};User={USER};Password={PASSWORD};TrustServerCertificate=true;      
       
   sqlserver:
     image: mcr.microsoft.com/mssql/server:2022-latest
     environment:
-      SA_PASSWORD: "4|1cu4nd3"
+      SA_PASSWORD: ${CONNECTIONSECRETS_PASSWORD}
       ACCEPT_EULA: "Y"
     ports:
       - "1433:1433"

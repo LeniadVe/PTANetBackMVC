@@ -8,14 +8,14 @@ ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
 COPY . .
-RUN dotnet restore AdministrationAPI.csproj
-RUN dotnet build AdministrationAPI.csproj -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet restore ./AdministrationAPI/AdministrationAPI.csproj
+RUN dotnet build ./AdministrationAPI/AdministrationAPI.csproj -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish AdministrationAPI.csproj -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish ./AdministrationAPI/AdministrationAPI.csproj -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
-ENTRYPOINT ["dotnet", "AdministrationAPI.dll"]
+ENTRYPOINT ["dotnet", "./AdministrationAPI/AdministrationAPI.dll"]

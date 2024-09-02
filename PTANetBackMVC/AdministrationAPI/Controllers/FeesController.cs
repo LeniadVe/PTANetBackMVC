@@ -1,109 +1,83 @@
-﻿using AdministrationAPI.Context;
-using AdministrationAPI.DTO;
+﻿using AdministrationAPI.DTO;
+using AdministrationAPI.Errors;
 using AdministrationAPI.Interfaces;
-using AdministrationAPI.Services;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace AdministrationAPI.Controllers
 {
     public class FeesController : ControllerBase
     {
         private readonly IFeeService _feeService;
-        private readonly DataContext _dbContext;
+        private readonly IDBFeeService _dbFeeService;
+        private readonly ILogger<FeesController> _logger;
 
-        public FeesController(IFeeService feeService, DataContext dbContext)
+        public FeesController(IFeeService feeService, IDBFeeService dbFeeService, ILogger<FeesController> logger)
         {
             _feeService = feeService;
-            _dbContext = dbContext;
+            _dbFeeService = dbFeeService;
+            _logger = logger;
         }
 
         [HttpGet("GetAllFees")]
         public async Task<IActionResult> GetAllFees()
         {
+            _logger.LogInformation($"GetAllFees was successfully called.");
             var fees = await _feeService.GetAllFeesAsync();
-            _dbContext.Fees.AddRange(fees);
-            await _dbContext.SaveChangesAsync();
-            if (fees == null || !fees.Any())
-                return NotFound();
-            return Ok(fees);
+            var result = _dbFeeService.InsertRange(fees);
+            return HandleResult(result, StatusCodes.Status400BadRequest, "An error occurred while retrieving the fees.");
         }
 
         [HttpGet("")]
-        public async Task<IActionResult> GetFees()
+        public IActionResult GetFees()
         {
-            var fees = _dbContext.Fees.ToListAsync();
-            if (fees == null || fees.IsFaulted || !fees.Result.Any())
-                return NotFound();
-            return Ok(await fees);
+            _logger.LogInformation($"GetFees was successfully called.");
+
+            var fees = _dbFeeService.GetAll();
+            return HandleResult(fees, StatusCodes.Status404NotFound, "An error occurred while retrieving the fee.");
         }
 
         [HttpGet("{id}")]
-        public async Task<IActionResult> GetFee(int id)
+        public IActionResult GetFee(int id)
         {
-            var fee = _dbContext.Fees.FirstOrDefaultAsync(x => x.FeeId == id);
-            if (fee == null || fee.IsFaulted)
-                return NotFound();
-            return Ok(await fee);
+            _logger.LogInformation($"GetFee with Id:{id} was successfully called.");
+
+            var fee = _dbFeeService.Get(id);
+            return HandleResult(fee, StatusCodes.Status404NotFound, "An error occurred while retrieving the fee.");
         }
 
-        [HttpPost]
-        public async Task<IActionResult> InsertFee(Fee fee)
+        [HttpPost("")]
+        public IActionResult InsertFee(Fee fee)
         {
-            try
-            {
-                _dbContext.Fees.Add(fee);
-                await _dbContext.SaveChangesAsync();
+            _logger.LogInformation($"InsertFee was successfully called.");
 
-                return Created("GetFee", new { id = fee.FeeId });
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex.Message);
-            }
+            var result = _dbFeeService.Insert(fee);
+            return HandleResult(result, StatusCodes.Status400BadRequest, "An error occurred while inserting the fee.");
         }
 
         [HttpPut("{id}")]
-        public async Task<IActionResult> PutMarketData(int id, Fee fee)
+        public IActionResult PutMarketData(int id, Fee fee)
         {
+            _logger.LogInformation($"PutMarketData with Id:{id} was successfully called.");
+
             if (id != fee.FeeId)
                 return BadRequest();
 
-            _dbContext.Entry(fee).State = EntityState.Modified;
-
-            try
-            {
-                await _dbContext.SaveChangesAsync();
-            }
-            catch (DbUpdateConcurrencyException)
-            {
-                if (!FeeExists(id))
-                    return NotFound();
-                else
-                    return BadRequest();
-            }
-
-            return Ok();
+            var result = _dbFeeService.Update(fee);
+            return HandleResult(result, StatusCodes.Status400BadRequest, $"An error occurred while updating the fee.");
         }
-        private bool FeeExists(int id) => _dbContext.Fees.Any(x => x.FeeId == id);
 
         [HttpDelete("{id}")]
-        public async Task<IActionResult> DeleteFee(int id)
+        public IActionResult DeleteFee(int id)
         {
-            var fee = await _dbContext.Fees.FindAsync(id);
-            if (fee == null)
-                return NotFound();
-            try
-            {
-                _dbContext.Fees.Remove(fee);
-                await _dbContext.SaveChangesAsync();
+            _logger.LogInformation($"DeleteFee with Id:{id} was successfully called.");
 
-                return Ok();
-            }
-            catch (Exception ex)
-            {
-                return BadRequest(ex);
-            }
+            var result = _dbFeeService.Delete(id);
+            return HandleResult(result, StatusCodes.Status400BadRequest, "An error occurred while updating the fee.");
+        }
+
+        private IActionResult HandleResult<T>(Result<T> result,int statusCode, string message)
+        {
+            return ResultHelper.HandleResult(result, _logger, Ok, StatusCode, statusCode, message);
         }
     }
 
